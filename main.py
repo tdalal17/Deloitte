@@ -1,41 +1,70 @@
 import json, unittest, datetime
 
-with open("./data-1.json", "r") as f:
+with open("./data-1.json", "r", encoding="utf8") as f:
     jsonData1 = json.load(f)
-with open("./data-2.json", "r") as f:
+
+with open("./data-2.json", "r", encoding="utf8") as f:
     jsonData2 = json.load(f)
-with open("./data-result.json", "r") as f:
+
+with open("./data-result.json", "r", encoding="utf8") as f:
     jsonExpectedResult = json.load(f)
 
 
 def convertFromFormat1(jsonObject):
-    # Given that the 'timestamp' in Type 1 data is in ISO format, the task is to convert it into milliseconds.
-    if "timestamp" in jsonObject:
-        timestamp = jsonObject["timestamp"]
-        try:
-            # Convert an ISO timestamp into a datetime object. 
-            dt = datetime.datetime.fromisoformat(timestamp)
-            # Convert the given datetime to the number of milliseconds                   that have passed since the epoch. 
 
-            milliseconds = int(dt.timestamp() * 1000)
-            # Modify the timestamp value inside the JSON object 
-            jsonObject["timestamp"] = milliseconds
-        except ValueError:
-            # Address any erroneous ISO timestamps, if necessary. 
-            pass
+    # IMPLEMENT: Conversion From Type 1
+    locationParts = jsonObject['location'].split('/')
 
-    return jsonObject
+    result = {
+        'deviceID': jsonObject['deviceID'],
+        'deviceType': jsonObject['deviceType'],
+        'timestamp': jsonObject['timestamp'],
+        'location': {
+            'country': locationParts[0],
+            'city': locationParts[1],
+            'area': locationParts[2],
+            'factory': locationParts[3],
+            'section': locationParts[4]
+        },
+        'data': {
+            'status': jsonObject['operationStatus'],
+            'temperature': jsonObject['temp']
+        }
+    }
+
+    return result
 
 
 def convertFromFormat2(jsonObject):
-    # No conversion is necessary for Type 2 data as long as the 'timestamp' is already in milliseconds format.
-    return jsonObject
+
+    # IMPLEMENT: Conversion From Type 2
+    date = datetime.datetime.strptime(jsonObject['timestamp'],
+                                      '%Y-%m-%dT%H:%M:%S.%fZ')
+    timestamp = int(
+        (date - datetime.datetime(1970, 1, 1)).total_seconds() * 1000)
+
+    result = {
+        'deviceID': jsonObject['device']['id'],
+        'deviceType': jsonObject['device']['type'],
+        'timestamp': timestamp,
+        'location': {
+            'country': jsonObject['country'],
+            'city': jsonObject['city'],
+            'area': jsonObject['area'],
+            'factory': jsonObject['factory'],
+            'section': jsonObject['section']
+        },
+        'data': jsonObject['data']
+    }
+
+    return result
 
 
 def main(jsonObject):
+
     result = {}
 
-if "device" not in jsonObject:
+    if (jsonObject.get('device') == None):
         result = convertFromFormat1(jsonObject)
     else:
         result = convertFromFormat2(jsonObject)
@@ -50,11 +79,14 @@ class TestSolution(unittest.TestCase):
 
     def test_dataType1(self):
         result = main(jsonData1)
-        self.assertEqual(result, jsonExpectedResult, 'Converting from Type 1 failed')
+        self.assertEqual(result, jsonExpectedResult,
+                         'Converting from Type 1 failed')
 
     def test_dataType2(self):
         result = main(jsonData2)
-        self.assertEqual(result, jsonExpectedResult, 'Converting from Type 2 failed')
+        self.assertEqual(result, jsonExpectedResult,
+                         'Converting from Type 2 failed')
+
 
 if __name__ == '__main__':
     unittest.main()
